@@ -10,8 +10,9 @@ Causal INdependent Effect Module Attribution + Optimal Transport (CINEMA-OT)  is
 - Numpy
 - Scanpy
 - sklearn
-- rpy2
 - meld (for iterative weighting)
+- rpy2
+- XICOR (in R)
 
 ### Usage
 
