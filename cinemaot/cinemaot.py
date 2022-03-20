@@ -166,7 +166,7 @@ def cinemaot_weighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.75,smo
             indexF = indexF[index_sample]
             data = data[index_sample,:]
     
-    X_transformed = transformer.transform(adata.X)
+    X_transformed = transformer.transform(adata.obsm['X_pca'][adata.obs[obs_label].isin([expr_label,ref_label]),:dim])
     cf = X_transformed[:,xi<thres]
     cf1 = cf[tmp1,:]
     cf2 = cf[tmp2,:]
@@ -186,5 +186,5 @@ def cinemaot_weighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.75,smo
     af = np.exp(-dis * dis / e)
     sk = skp.SinkhornKnopp(setr=r,setc=c,epsilon=eps)
     ot = sk.fit(af).T
-    te2 = adata.X[adata.obs[obs_label]==ref_label,:] - np.matmul(ot/np.sum(ot,axis=1)[:,None],adata.X[adata.obs[obs_label]==expr_label,:])
+    te2 = adata.X.toarray()[adata.obs[obs_label]==ref_label,:] - np.matmul(ot/np.sum(ot,axis=1)[:,None],adata.X.toarray()[adata.obs[obs_label]==expr_label,:])
     return cf, ot, te2, r, c
