@@ -21,7 +21,8 @@ import scanpy as sc
 import cinemaot as co
 adata = sc.read_h5ad('RealData/rvcse_220105.h5ad')
 subset = adata[adata.obs['batch'].isin(['CSE','RVCSE']),:]
-cf, ot, de = co.cinemaot.cinemaot_unweighted(subset,obs_label='batch', ref_label='CSE', expr_label='RVCSE')
+cf_unweighted, ot_unweighted, de_unweighted = co.cinemaot.cinemaot_unweighted(subset,obs_label='batch', ref_label='CSE', expr_label='RVCSE')
+cf_weighted, ot_weighted, de_weighted, r_weighted, c_weighted = co.cinemaot.cinemaot_weighted(subset,obs_label='batch', ref_label='CSE', expr_label='RVCSE')
 ```
 
 ### Reference
