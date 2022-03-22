@@ -16,7 +16,7 @@ import sklearn.metrics
 import meld
 
 
-def cinemaot_unweighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.15,smoothness=1e-4,eps=1e-3):
+def cinemaot_unweighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.15,smoothness=1e-4,eps=1e-3,mode='parametric',marker=None):
     """
     Parameters
     ----------
@@ -36,7 +36,8 @@ def cinemaot_unweighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.15,s
         The parameter for setting the smoothness of entropy-regularized optimal transport. Should be set as a small value above zero!
     eps: 'float'
         The parameter for stop condition of OT convergence. 
-
+    mode: 'str'
+        If mode is 'parametric', return standard differential matrices. If it's non-parametric, we return expr cells' weighted quantile.
     Return
     ----------
     cf: 'numpy.ndarray'
@@ -76,12 +77,21 @@ def cinemaot_unweighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.15,s
     c[:,0] = 1/cf2.shape[0]
     sk = skp.SinkhornKnopp(setr=r,setc=c,epsilon=eps)
     ot = sk.fit(af).T
-    te2 = adata.X.toarray()[adata.obs[obs_label]==ref_label,:] - np.matmul(ot/np.sum(ot,axis=1)[:,None],adata.X.toarray()[adata.obs[obs_label]==expr_label,:])
+    if mode == 'parametric':
+        te2 = adata.X.toarray()[adata.obs[obs_label]==ref_label,:] - np.matmul(ot/np.sum(ot,axis=1)[:,None],adata.X.toarray()[adata.obs[obs_label]==expr_label,:])
+    elif mode == 'non_parametric':
+        ref = adata.X.toarray()[adata.obs[obs_label]==ref_label,:]
+        ref = ref[:,adata.var_names.isin(marker)]
+        expr = adata.X.toarray()[adata.obs[obs_label]==expr_label,:]
+        expr = expr[:,adata.var_names.isin(marker)]
+        te2 = ref * 0
+        for i in range(te2.shape[0]):
+            te2[i,:] = weighted_quantile(expr,ref[i,:],sample_weight=ot[i,:])
     return cf, ot, te2
 
 
 
-def cinemaot_weighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.75,smoothness=1e-4,eps=1e-3,iter_num=2,k=3):
+def cinemaot_weighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.75,smoothness=1e-4,eps=1e-3,iter_num=2,k=3,mode='parametric',marker=None):
     """
     Parameters
     ----------
@@ -186,5 +196,32 @@ def cinemaot_weighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.75,smo
     af = np.exp(-dis * dis / e)
     sk = skp.SinkhornKnopp(setr=r,setc=c,epsilon=eps)
     ot = sk.fit(af).T
-    te2 = adata.X.toarray()[adata.obs[obs_label]==ref_label,:] - np.matmul(ot/np.sum(ot,axis=1)[:,None],adata.X.toarray()[adata.obs[obs_label]==expr_label,:])
+    if mode == 'parametric':
+        te2 = adata.X.toarray()[adata.obs[obs_label]==ref_label,:] - np.matmul(ot/np.sum(ot,axis=1)[:,None],adata.X.toarray()[adata.obs[obs_label]==expr_label,:])
+    elif mode == 'non_parametric':
+        ref = adata.X.toarray()[adata.obs[obs_label]==ref_label,:]
+        ref = ref[:,adata.var_names.isin(marker)]
+        expr = adata.X.toarray()[adata.obs[obs_label]==expr_label,:]
+        expr = expr[:,adata.var_names.isin(marker)]
+        te2 = ref * 0
+        for i in range(te2.shape[0]):
+            te2[i,:] = weighted_quantile(expr,ref[i,:],sample_weight=ot[i,:])
     return cf, ot, te2, r, c
+
+
+def weighted_quantile(values, num, sample_weight=None, 
+                      values_sorted=False):
+    """
+    Estimate weighted quantile for robust estimation of gene expression change given the OT map. The function is completely vectorized to accelerate computation
+    """
+    values = np.array(values)
+    if sample_weight is None:
+        sample_weight = np.ones(len(values))
+    sorter = np.argsort(values,axis=0)
+    values = np.take_along_axis(values, sorter, axis=0)
+    sample_weight = np.tile(sample_weight/np.sum(sample_weight),(1,values.shape[1]))
+    sample_weight = np.take_along_axis(sample_weight,sorter,axis=1)
+    weighted_quantiles = np.cumsum(sample_weight,axis=0)
+    weighted_quantiles = np.vstack((np.zeros(values.shape[1]),weighted_quantiles))
+    numindex = np.sum(values <= num.reshape(1,-1),axis=0)
+    return np.diag(weighted_quantiles[np.ix_(numindex,np.arange(values.shape[1]))])
