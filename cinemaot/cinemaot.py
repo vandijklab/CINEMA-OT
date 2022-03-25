@@ -2,6 +2,7 @@ import numpy as np
 import scanpy as sc
 from anndata import AnnData
 from . import sinkhorn_knopp as skp
+from scipy.sparse import issparse
 
 # Import Chatterjee score package from R
 import rpy2.robjects as ro
@@ -78,15 +79,29 @@ def cinemaot_unweighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.15,s
     sk = skp.SinkhornKnopp(setr=r,setc=c,epsilon=eps)
     ot = sk.fit(af).T
     if mode == 'parametric':
-        te2 = adata.X.toarray()[adata.obs[obs_label]==ref_label,:] - np.matmul(ot/np.sum(ot,axis=1)[:,None],adata.X.toarray()[adata.obs[obs_label]==expr_label,:])
+        if issparse(adata.X):
+            te2 = adata.X.toarray()[adata.obs[obs_label]==ref_label,:] - np.matmul(ot/np.sum(ot,axis=1)[:,None],adata.X.toarray()[adata.obs[obs_label]==expr_label,:])
+        else:
+            te2 = adata.X[adata.obs[obs_label]==ref_label,:] - np.matmul(ot/np.sum(ot,axis=1)[:,None],adata.X[adata.obs[obs_label]==expr_label,:])
     elif mode == 'non_parametric':
-        ref = adata.X.toarray()[adata.obs[obs_label]==ref_label,:]
-        ref = ref[:,adata.var_names.isin(marker)]
-        expr = adata.X.toarray()[adata.obs[obs_label]==expr_label,:]
-        expr = expr[:,adata.var_names.isin(marker)]
-        te2 = ref * 0
-        for i in range(te2.shape[0]):
-            te2[i,:] = weighted_quantile(expr,ref[i,:],sample_weight=ot[i,:])
+        if issparse(adata.X):
+            ref = adata.X.toarray()[adata.obs[obs_label]==ref_label,:]
+            ref = ref[:,adata.var_names.isin(marker)]
+            expr = adata.X.toarray()[adata.obs[obs_label]==expr_label,:]
+            expr = expr[:,adata.var_names.isin(marker)]
+            te2 = ref * 0
+            for i in range(te2.shape[0]):
+                te2[i,:] = weighted_quantile(expr,ref[i,:],sample_weight=ot[i,:])
+        else:
+            ref = adata.X[adata.obs[obs_label]==ref_label,:]
+            ref = ref[:,adata.var_names.isin(marker)]
+            expr = adata.X[adata.obs[obs_label]==expr_label,:]
+            expr = expr[:,adata.var_names.isin(marker)]
+            te2 = ref * 0
+            for i in range(te2.shape[0]):
+                te2[i,:] = weighted_quantile(expr,ref[i,:],sample_weight=ot[i,:])            
+    else:
+        raise ValueError("We do not support other methods for DE now.")
     return cf, ot, te2
 
 
@@ -197,16 +212,45 @@ def cinemaot_weighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.75,smo
     sk = skp.SinkhornKnopp(setr=r,setc=c,epsilon=eps)
     ot = sk.fit(af).T
     if mode == 'parametric':
-        te2 = adata.X.toarray()[adata.obs[obs_label]==ref_label,:] - np.matmul(ot/np.sum(ot,axis=1)[:,None],adata.X.toarray()[adata.obs[obs_label]==expr_label,:])
+        if issparse(adata.X):
+            te2 = adata.X.toarray()[adata.obs[obs_label]==ref_label,:] - np.matmul(ot/np.sum(ot,axis=1)[:,None],adata.X.toarray()[adata.obs[obs_label]==expr_label,:])
+        else:
+            te2 = adata.X[adata.obs[obs_label]==ref_label,:] - np.matmul(ot/np.sum(ot,axis=1)[:,None],adata.X[adata.obs[obs_label]==expr_label,:])
     elif mode == 'non_parametric':
-        ref = adata.X.toarray()[adata.obs[obs_label]==ref_label,:]
-        ref = ref[:,adata.var_names.isin(marker)]
-        expr = adata.X.toarray()[adata.obs[obs_label]==expr_label,:]
-        expr = expr[:,adata.var_names.isin(marker)]
-        te2 = ref * 0
-        for i in range(te2.shape[0]):
-            te2[i,:] = weighted_quantile(expr,ref[i,:],sample_weight=ot[i,:])
+        if issparse(adata.X):
+            ref = adata.X.toarray()[adata.obs[obs_label]==ref_label,:]
+            ref = ref[:,adata.var_names.isin(marker)]
+            expr = adata.X.toarray()[adata.obs[obs_label]==expr_label,:]
+            expr = expr[:,adata.var_names.isin(marker)]
+            te2 = ref * 0
+            for i in range(te2.shape[0]):
+                te2[i,:] = weighted_quantile(expr,ref[i,:],sample_weight=ot[i,:])
+        else:
+            ref = adata.X[adata.obs[obs_label]==ref_label,:]
+            ref = ref[:,adata.var_names.isin(marker)]
+            expr = adata.X[adata.obs[obs_label]==expr_label,:]
+            expr = expr[:,adata.var_names.isin(marker)]
+            te2 = ref * 0
+            for i in range(te2.shape[0]):
+                te2[i,:] = weighted_quantile(expr,ref[i,:],sample_weight=ot[i,:]) 
+    else:
+        raise ValueError("We do not support other methods for DE now.")
     return cf, ot, te2, r, c
+
+def synergy(adata,obs_label,base,A,B,AB,dim=20,thres=0.15,smoothness=1e-4,eps=1e-3,mode='parametric'):
+    adata1 = adata[adata.obs[obs_label].isin([base,A]),:]
+    adata2 = adata[adata.obs[obs_label].isin([B,AB]),:]
+    adata_link = adata[adata.obs[obs_label].isin([base,B]),:]
+    cf, ot1, de1 = cinemaot_unweighted(adata1,obs_label=obs_label, ref_label=base, expr_label=A,dim=dim,thres=thres,smoothness=smoothness,eps=eps,mode=mode)
+    cf, ot2, de2 = cinemaot_unweighted(adata2,obs_label=obs_label, ref_label=B, expr_label=AB,dim=dim,thres=thres,smoothness=smoothness,eps=eps,mode=mode)
+    cf, ot0, de0 = cinemaot_unweighted(adata_link,obs_label=obs_label, ref_label=base, expr_label=B,dim=dim,thres=thres,smoothness=smoothness,eps=eps,mode=mode)
+    if mode == 'parametric':
+        syn = (ot0/np.sum(ot0,axis=1)[:,None]) @ de2 - de1
+    elif mode == 'non_parametric':
+        raise ValueError("We do not non-parametric synergy now.")
+    else:
+        raise ValueError("We do not support other methods for synergy now.")
+    return syn
 
 
 def weighted_quantile(values, num, sample_weight=None, 
