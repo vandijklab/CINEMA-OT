@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import scanpy as sc
 from anndata import AnnData
 from . import sinkhorn_knopp as skp
@@ -269,3 +270,21 @@ def weighted_quantile(values, num, sample_weight=None,
     weighted_quantiles = np.vstack((np.zeros(values.shape[1]),weighted_quantiles))
     numindex = np.sum(values <= num.reshape(1,-1),axis=0)
     return np.diag(weighted_quantiles[np.ix_(numindex,np.arange(values.shape[1]))])
+
+
+def wgcna_module_scores(de_matrix, gene_names, n_variable_genes=2000):
+    """
+    Caculate gene modules and soft connectivity scores using WGCNA
+    """
+    wgcna = importr('WGCNA')
+    variance = np.var(de_matrix, axis=0)
+    genes_to_select = np.argsort(-variance) < n_variable_genes
+    de_trimmed = de_matrix[:,genes_to_select]
+    modules = wgcna.blockwiseModules(de_trimmed, numericLabels=True)
+    # calculate top hub genes per module
+    soft_connectivities = wgcna.softConnectivity(de_trimmed)
+    return pd.DataFrame({
+        'gene_name': gene_names[genes_to_select],
+        'module': modules.rx2('colors').astype(int),
+        'soft_connectivity': soft_connectivities
+    })
