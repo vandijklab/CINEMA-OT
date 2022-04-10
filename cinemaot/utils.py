@@ -66,16 +66,16 @@ def clusterttest(adata,clobs,thres,label,path):
         genenames = adata.var_names.values[gcindex]
         pv = pv[gcindex]
         st = st[gcindex]
-        upindex = (((pv<thres)*1) * ((st>0)*1) * (np.abs(np.mean(tmpte,axis=0))>0.25))>0
-        downindex = (((pv<thres)*1) * ((st<0)*1)* (np.abs(np.mean(tmpte,axis=0))>0.25))>0
-        allindex = (((pv<thres)*1) * (np.abs(np.mean(tmpte,axis=0))>0.25))>0
+        upindex = (((pv<thres)*1) * ((st>0)*1) * (np.abs(np.mean(tmpte,axis=0))>0.15))>0
+        downindex = (((pv<thres)*1) * ((st<0)*1)* (np.abs(np.mean(tmpte,axis=0))>0.15))>0
+        allindex = (((pv<thres)*1) * (np.abs(np.mean(tmpte,axis=0))>0.15))>0
         upgenes = genenames[upindex]
         downgenes = genenames[downindex]
         allgenes = genenames[allindex]
         mk.extend(allgenes.tolist())
         mk = list(set(mk))
         adata.var_names.values[pv<thres]
-        genenum[i] = np.sum(((pv<thres)*1) * ((np.abs(np.mean(tmpte,axis=0))>0.25)))
+        genenum[i] = np.sum(((pv<thres)*1) * ((np.abs(np.mean(tmpte,axis=0))>0.15)))
         enr_up = gp.enrichr(gene_list=upgenes.tolist(), gene_sets=['./genelist/h.all.v7.5.1.symbols.gmt','./genelist/c5.go.bp.v7.5.1.symbols.gmt'],
                      no_plot=True,organism='Human',
                      outdir='./genelist/prerank_report_kegg', format='png')
@@ -88,6 +88,12 @@ def clusterttest(adata,clobs,thres,label,path):
         enr_up.results.iloc[enr_up.results['Adjusted P-value'].values<0.05,:].to_csv(path+'/Up'+clustername+'.csv')
         enr_down.results.iloc[enr_down.results['Adjusted P-value'].values<0.05,:].to_csv(path+'/Down'+clustername+'.csv')
         enr.results.iloc[enr.results['Adjusted P-value'].values<0.05,:].to_csv(path+'/'+clustername+'.csv')
+        upgenesdf = pd.DataFrame(index=upgenes)
+        downgenesdf = pd.DataFrame(index=downgenes)
+        allgenesdf = pd.DataFrame(index=allgenes)
+        upgenesdf.to_csv(path+'/Upnames'+clustername+'.csv')
+        downgenesdf.to_csv(path+'/Downnames'+clustername+'.csv')
+        allgenesdf.to_csv(path+'/names'+clustername+'.csv')
         if i == 0:
             df = enr.results.transpose().iloc[4:5,:]
             df.columns = enr.results['Term'][:]
