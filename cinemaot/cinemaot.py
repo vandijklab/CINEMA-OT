@@ -79,13 +79,13 @@ def cinemaot_unweighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.15,s
     	r[:,0] = 1/cf1.shape[0]
     	c[:,0] = 1/cf2.shape[0]
     else:
-    	#implement a simple function here, taking adata.obs, output inverse prob weight. For consistency, r is still the empirical distribution, while c is weighted.
+    	#implement a simple function here, taking adata.obs, output inverse prob weight. For consistency, c is still the empirical distribution, while r is weighted.
     	adata1 = adata[adata.obs[obs_label]==expr_label,:]
     	adata2 = adata[adata.obs[obs_label]==ref_label,:]
-    	r[:,0] = 1/cf1.shape[0]
-    	for ct in list(set(adata2.obs[preweight_label].values.tolist())):
-    		c[(adata2.obs[preweight_label]==ct).values,0] = np.sum((adata1.obs[preweight_label]==ct).values) / np.sum((adata2.obs[preweight_label]==ct).values)
-    	c[:,0] = c[:,0]/np.sum(c[:,0])
+    	c[:,0] = 1/cf2.shape[0]
+    	for ct in list(set(adata1.obs[preweight_label].values.tolist())):
+    		r[(adata1.obs[preweight_label]==ct).values,0] = np.sum((adata2.obs[preweight_label]==ct).values) / np.sum((adata1.obs[preweight_label]==ct).values)
+    	r[:,0] = r[:,0]/np.sum(r[:,0])
 
     sk = skp.SinkhornKnopp(setr=r,setc=c,epsilon=eps)
     ot = sk.fit(af).T
@@ -248,13 +248,13 @@ def cinemaot_weighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.75,smo
         raise ValueError("We do not support other methods for DE now.")
     return cf, ot, te2, r, c
 
-def synergy(adata,obs_label,base,A,B,AB,dim=20,thres=0.15,smoothness=1e-4,eps=1e-3,mode='parametric'):
+def synergy(adata,obs_label,base,A,B,AB,dim=20,thres=0.15,smoothness=1e-4,eps=1e-3,mode='parametric',preweight_label=None):
     adata1 = adata[adata.obs[obs_label].isin([base,A]),:]
     adata2 = adata[adata.obs[obs_label].isin([B,AB]),:]
     adata_link = adata[adata.obs[obs_label].isin([base,B]),:]
-    cf, ot1, de1 = cinemaot_unweighted(adata1,obs_label=obs_label, ref_label=base, expr_label=A,dim=dim,thres=thres,smoothness=smoothness,eps=eps,mode=mode)
-    cf, ot2, de2 = cinemaot_unweighted(adata2,obs_label=obs_label, ref_label=B, expr_label=AB,dim=dim,thres=thres,smoothness=smoothness,eps=eps,mode=mode)
-    cf, ot0, de0 = cinemaot_unweighted(adata_link,obs_label=obs_label, ref_label=base, expr_label=B,dim=dim,thres=thres,smoothness=smoothness,eps=eps,mode=mode)
+    cf, ot1, de1 = cinemaot_unweighted(adata1,obs_label=obs_label, ref_label=base, expr_label=A,dim=dim,thres=thres,smoothness=smoothness,eps=eps,mode=mode,preweight_label=preweight_label)
+    cf, ot2, de2 = cinemaot_unweighted(adata2,obs_label=obs_label, ref_label=B, expr_label=AB,dim=dim,thres=thres,smoothness=smoothness,eps=eps,mode=mode,preweight_label=preweight_label)
+    cf, ot0, de0 = cinemaot_unweighted(adata_link,obs_label=obs_label, ref_label=base, expr_label=B,dim=dim,thres=thres,smoothness=smoothness,eps=eps,mode=mode,preweight_label=preweight_label)
     if mode == 'parametric':
         syn = (ot0/np.sum(ot0,axis=1)[:,None]) @ de2 - de1
     elif mode == 'non_parametric':
