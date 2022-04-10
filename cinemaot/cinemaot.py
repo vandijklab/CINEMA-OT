@@ -18,7 +18,7 @@ import sklearn.metrics
 import meld
 
 
-def cinemaot_unweighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.15,smoothness=1e-4,eps=1e-3,mode='parametric',marker=None):
+def cinemaot_unweighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.15,smoothness=1e-4,eps=1e-3,mode='parametric',marker=None,preweight_label=None):
     """
     Parameters
     ----------
@@ -75,8 +75,18 @@ def cinemaot_unweighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.15,s
     af = np.exp(-dis * dis / e)
     r = np.zeros([cf1.shape[0],1])
     c = np.zeros([cf2.shape[0],1])
-    r[:,0] = 1/cf1.shape[0]
-    c[:,0] = 1/cf2.shape[0]
+    if preweight_label is None:
+    	r[:,0] = 1/cf1.shape[0]
+    	c[:,0] = 1/cf2.shape[0]
+    else:
+    	#implement a simple function here, taking adata.obs, output inverse prob weight. For consistency, r is still the empirical distribution, while c is weighted.
+    	adata1 = adata[adata.obs[obs_label]==expr_label,:]
+    	adata2 = adata[adata.obs[obs_label]==ref_label,:]
+    	r[:,0] = 1/cf1.shape[0]
+    	for ct in list(set(adata2.obs[preweight_label].values.tolist())):
+    		c[(adata2.obs[preweight_label]==ct).values,0] = np.sum((adata1.obs[preweight_label]==ct).values) / np.sum((adata2.obs[preweight_label]==ct).values)
+    	c[:,0] = c[:,0]/np.sum(c[:,0])
+
     sk = skp.SinkhornKnopp(setr=r,setc=c,epsilon=eps)
     ot = sk.fit(af).T
     if mode == 'parametric':
@@ -270,21 +280,3 @@ def weighted_quantile(values, num, sample_weight=None,
     weighted_quantiles = np.vstack((np.zeros(values.shape[1]),weighted_quantiles))
     numindex = np.sum(values <= num.reshape(1,-1),axis=0)
     return np.diag(weighted_quantiles[np.ix_(numindex,np.arange(values.shape[1]))])
-
-
-def wgcna_module_scores(de_matrix, gene_names, n_variable_genes=2000):
-    """
-    Caculate gene modules and soft connectivity scores using WGCNA
-    """
-    wgcna = importr('WGCNA')
-    variance = np.var(de_matrix, axis=0)
-    genes_to_select = np.argsort(-variance) < n_variable_genes
-    de_trimmed = de_matrix[:,genes_to_select]
-    modules = wgcna.blockwiseModules(de_trimmed, numericLabels=True)
-    # calculate top hub genes per module
-    soft_connectivities = wgcna.softConnectivity(de_trimmed)
-    return pd.DataFrame({
-        'gene_name': gene_names[genes_to_select],
-        'module': modules.rx2('colors').astype(int),
-        'soft_connectivity': soft_connectivities
-    })
