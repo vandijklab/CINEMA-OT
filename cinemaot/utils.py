@@ -1,6 +1,6 @@
 import gseapy as gp
 import pandas as pd
-from scipy.stats import ttest_1samp
+from scipy.stats import wilcoxon
 import numpy as np
 import scanpy as sc
 #import scib
@@ -53,7 +53,8 @@ def assignleiden(adata,ctobs,clobs,label):
     adata.obs[label] = ss
     return
 
-def clusterttest(adata,clobs,thres,label,path):
+def clustertest(adata,clobs,thres,fthres,label,path):
+    # Changed from ttest to Wilcoxon test
     clusternum = int(np.max((np.asfarray(adata.obs[clobs].values))))
     genenum = np.zeros([clusternum+1])
     mk = []
@@ -61,21 +62,19 @@ def clusterttest(adata,clobs,thres,label,path):
         clusterindex = (np.asfarray(adata.obs[clobs].values)==i)
         tmpte = adata.X[clusterindex,:]
         clustername = adata.obs[label][clusterindex][0]
-        st, pv = ttest_1samp(tmpte,0)
-        gcindex = np.argsort(-st)
-        genenames = adata.var_names.values[gcindex]
-        pv = pv[gcindex]
-        st = st[gcindex]
-        upindex = (((pv<thres)*1) * ((st>0)*1) * (np.abs(np.mean(tmpte,axis=0))>0.15))>0
-        downindex = (((pv<thres)*1) * ((st<0)*1)* (np.abs(np.mean(tmpte,axis=0))>0.15))>0
-        allindex = (((pv<thres)*1) * (np.abs(np.mean(tmpte,axis=0))>0.15))>0
+        pv = np.zeros(tmpte.shape[1])
+        for k in range(tmpte.shape[1]):
+            st, pv[k] = wilcoxon(tmpte[:,k],zero_method='zsplit')
+        genenames = adata.var_names.values
+        upindex = (((pv<thres)*1) * ((np.median(tmpte,axis=0)>0)*1) * (np.abs(np.median(tmpte,axis=0))>fthres))>0
+        downindex = (((pv<thres)*1) * ((np.median(tmpte,axis=0)<0)*1)* (np.abs(np.median(tmpte,axis=0))>fthres))>0
+        allindex = (((pv<thres)*1) * (np.abs(np.median(tmpte,axis=0))>fthres))>0
         upgenes = genenames[upindex]
         downgenes = genenames[downindex]
         allgenes = genenames[allindex]
         mk.extend(allgenes.tolist())
         mk = list(set(mk))
-        adata.var_names.values[pv<thres]
-        genenum[i] = np.sum(((pv<thres)*1) * ((np.abs(np.mean(tmpte,axis=0))>0.15)))
+        genenum[i] = np.sum(((pv<thres)*1) * ((np.abs(np.mean(tmpte,axis=0))>fthres)))
         enr_up = gp.enrichr(gene_list=upgenes.tolist(), gene_sets=['./genelist/h.all.v7.5.1.symbols.gmt','./genelist/c5.go.bp.v7.5.1.symbols.gmt'],
                      no_plot=True,organism='Human',
                      outdir='./genelist/prerank_report_kegg', format='png')
@@ -85,24 +84,28 @@ def clusterttest(adata,clobs,thres,label,path):
         enr = gp.enrichr(gene_list=allgenes.tolist(), gene_sets=['./genelist/h.all.v7.5.1.symbols.gmt','./genelist/c5.go.bp.v7.5.1.symbols.gmt'],
                      no_plot=True,organism='Human',
                      outdir='./genelist/prerank_report_kegg', format='png')
-        enr_up.results.iloc[enr_up.results['Adjusted P-value'].values<0.05,:].to_csv(path+'/Up'+clustername+'.csv')
-        enr_down.results.iloc[enr_down.results['Adjusted P-value'].values<0.05,:].to_csv(path+'/Down'+clustername+'.csv')
-        enr.results.iloc[enr.results['Adjusted P-value'].values<0.05,:].to_csv(path+'/'+clustername+'.csv')
+        if not enr_up.results.empty:
+            enr_up.results.iloc[enr_up.results['Adjusted P-value'].values<1e-3,:].to_csv(path+'/Up'+clustername+'.csv')
+        if not enr_down.results.empty:
+            enr_down.results.iloc[enr_down.results['Adjusted P-value'].values<1e-3,:].to_csv(path+'/Down'+clustername+'.csv')
+        if not enr.results.empty:
+            enr.results.iloc[enr.results['Adjusted P-value'].values<1e-3,:].to_csv(path+'/'+clustername+'.csv')
         upgenesdf = pd.DataFrame(index=upgenes)
         downgenesdf = pd.DataFrame(index=downgenes)
         allgenesdf = pd.DataFrame(index=allgenes)
         upgenesdf.to_csv(path+'/Upnames'+clustername+'.csv')
         downgenesdf.to_csv(path+'/Downnames'+clustername+'.csv')
         allgenesdf.to_csv(path+'/names'+clustername+'.csv')
-        if i == 0:
-            df = enr.results.transpose().iloc[4:5,:]
-            df.columns = enr.results['Term'][:]
-            df.index.values[0] = clustername
-        else:
-            tmp = enr.results.transpose().iloc[4:5,:]
-            tmp.columns = enr.results['Term'][:]
-            tmp.index.values[0] = clustername
-            df = pd.concat([df,tmp])
+        if not enr.results.empty:
+            if i == 0:
+                df = enr.results.transpose().iloc[4:5,:]
+                df.columns = enr.results['Term'][:]
+                df.index.values[0] = clustername
+            else:
+                tmp = enr.results.transpose().iloc[4:5,:]
+                tmp.columns = enr.results['Term'][:]
+                tmp.index.values[0] = clustername
+                df = pd.concat([df,tmp])
     #df.values = -np.log10(df.values)
     #DF = sc.AnnData(df.transpose())
     #sc.pl.clustermap(DF,cmap='viridis', col_cluster=False)
