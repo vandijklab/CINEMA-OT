@@ -53,7 +53,7 @@ def assignleiden(adata,ctobs,clobs,label):
     adata.obs[label] = ss
     return
 
-def clustertest_synergy(adata1,adata2,clobs,thres,fthres,path):
+def clustertest_synergy(adata1,adata2,clobs,thres,fthres,path,genesetpath,organism):
     # In this simplified function, we return the gene set only. The function is only designed for synergy computation.
     mkup = []
     mkdown = []
@@ -91,18 +91,18 @@ def clustertest_synergy(adata1,adata2,clobs,thres,fthres,path):
         down1syn = list(set(downgenes1.tolist()) - set(downgenes2.tolist()))
         down2syn = list(set(downgenes2.tolist()) - set(downgenes1.tolist()))
         allgenes = list(set(up1syn) | set(up2syn) | set(down1syn) | set(down2syn))
-        enr_up1 = gp.enrichr(gene_list=up1syn, gene_sets=['./genelist/h.all.v7.5.1.symbols.gmt','./genelist/c5.go.bp.v7.5.1.symbols.gmt'],
-                     no_plot=True,organism='Human',
-                     outdir='./genelist/prerank_report_kegg', format='png')
-        enr_up2 = gp.enrichr(gene_list=up2syn, gene_sets=['./genelist/h.all.v7.5.1.symbols.gmt','./genelist/c5.go.bp.v7.5.1.symbols.gmt'],
-                     no_plot=True,organism='Human',
-                     outdir='./genelist/prerank_report_kegg', format='png')
-        enr_down1 = gp.enrichr(gene_list=down1syn, gene_sets=['./genelist/h.all.v7.5.1.symbols.gmt','./genelist/c5.go.bp.v7.5.1.symbols.gmt'],
-                     no_plot=True,organism='Human',
-                     outdir='./genelist/prerank_report_kegg', format='png')
-        enr_down2 = gp.enrichr(gene_list=down2syn, gene_sets=['./genelist/h.all.v7.5.1.symbols.gmt','./genelist/c5.go.bp.v7.5.1.symbols.gmt'],
-                     no_plot=True,organism='Human',
-                     outdir='./genelist/prerank_report_kegg', format='png')
+        enr_up1 = gp.enrichr(gene_list=up1syn, gene_sets=genesetpath,
+                     no_plot=True,organism=organism,
+                     outdir=path, format='png')
+        enr_up2 = gp.enrichr(gene_list=up2syn, gene_sets=genesetpath,
+                     no_plot=True,organism=organism,
+                     outdir=path, format='png')
+        enr_down1 = gp.enrichr(gene_list=down1syn, gene_sets=genesetpath,
+                     no_plot=True,organism=organism,
+                     outdir=path, format='png')
+        enr_down2 = gp.enrichr(gene_list=down2syn, gene_sets=genesetpath,
+                     no_plot=True,organism=organism,
+                     outdir=path, format='png')
         if not enr_up1.results.empty:
             enr_up1.results.iloc[enr_up1.results['Adjusted P-value'].values<1e-3,:].to_csv(path+'/Up1'+clustername+'.csv')
         if not enr_up2.results.empty:
@@ -125,7 +125,7 @@ def clustertest_synergy(adata1,adata2,clobs,thres,fthres,path):
     return
 
 
-def clustertest(adata,clobs,thres,fthres,label,path):
+def clustertest(adata,clobs,thres,fthres,label,path,genesetpath,organism):
     # Changed from ttest to Wilcoxon test
     clusternum = int(np.max((np.asfarray(adata.obs[clobs].values))))
     genenum = np.zeros([clusternum+1])
@@ -147,15 +147,15 @@ def clustertest(adata,clobs,thres,fthres,label,path):
         mk.extend(allgenes.tolist())
         mk = list(set(mk))
         genenum[i] = np.sum(((pv<thres)*1) * ((np.abs(np.mean(tmpte,axis=0))>fthres)))
-        enr_up = gp.enrichr(gene_list=upgenes.tolist(), gene_sets=['./genelist/h.all.v7.5.1.symbols.gmt','./genelist/c5.go.bp.v7.5.1.symbols.gmt'],
-                     no_plot=True,organism='Human',
-                     outdir='./genelist/prerank_report_kegg', format='png')
-        enr_down = gp.enrichr(gene_list=downgenes.tolist(), gene_sets=['./genelist/h.all.v7.5.1.symbols.gmt','./genelist/c5.go.bp.v7.5.1.symbols.gmt'],
-                     no_plot=True,organism='Human',
-                     outdir='./genelist/prerank_report_kegg', format='png')
-        enr = gp.enrichr(gene_list=allgenes.tolist(), gene_sets=['./genelist/h.all.v7.5.1.symbols.gmt','./genelist/c5.go.bp.v7.5.1.symbols.gmt'],
-                     no_plot=True,organism='Human',
-                     outdir='./genelist/prerank_report_kegg', format='png')
+        enr_up = gp.enrichr(gene_list=upgenes.tolist(), gene_sets=genesetpath,
+                     no_plot=True,organism=organism,
+                     outdir=path, format='png')
+        enr_down = gp.enrichr(gene_list=downgenes.tolist(), gene_sets=genesetpath,
+                     no_plot=True,organism=organism,
+                     outdir=path, format='png')
+        enr = gp.enrichr(gene_list=allgenes.tolist(), gene_sets=genesetpath,
+                     no_plot=True,organism=organism,
+                     outdir=path, format='png')
         if not enr_up.results.empty:
             enr_up.results.iloc[enr_up.results['Adjusted P-value'].values<1e-3,:].to_csv(path+'/Up'+clustername+'.csv')
         if not enr_down.results.empty:
