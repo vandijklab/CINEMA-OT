@@ -3,6 +3,7 @@ import pandas as pd
 import scanpy as sc
 from anndata import AnnData
 from . import sinkhorn_knopp as skp
+from . import utils
 from scipy.sparse import issparse
 
 # Import Chatterjee score package from R
@@ -76,16 +77,16 @@ def cinemaot_unweighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.15,s
     r = np.zeros([cf1.shape[0],1])
     c = np.zeros([cf2.shape[0],1])
     if preweight_label is None:
-    	r[:,0] = 1/cf1.shape[0]
-    	c[:,0] = 1/cf2.shape[0]
+        r[:,0] = 1/cf1.shape[0]
+        c[:,0] = 1/cf2.shape[0]
     else:
-    	#implement a simple function here, taking adata.obs, output inverse prob weight. For consistency, c is still the empirical distribution, while r is weighted.
-    	adata1 = adata[adata.obs[obs_label]==expr_label,:]
-    	adata2 = adata[adata.obs[obs_label]==ref_label,:]
-    	c[:,0] = 1/cf2.shape[0]
-    	for ct in list(set(adata1.obs[preweight_label].values.tolist())):
-    		r[(adata1.obs[preweight_label]==ct).values,0] = np.sum((adata2.obs[preweight_label]==ct).values) / np.sum((adata1.obs[preweight_label]==ct).values)
-    	r[:,0] = r[:,0]/np.sum(r[:,0])
+        #implement a simple function here, taking adata.obs, output inverse prob weight. For consistency, c is still the empirical distribution, while r is weighted.
+        adata1 = adata[adata.obs[obs_label]==expr_label,:]
+        adata2 = adata[adata.obs[obs_label]==ref_label,:]
+        c[:,0] = 1/cf2.shape[0]
+        for ct in list(set(adata1.obs[preweight_label].values.tolist())):
+            r[(adata1.obs[preweight_label]==ct).values,0] = np.sum((adata2.obs[preweight_label]==ct).values) / np.sum((adata1.obs[preweight_label]==ct).values)
+        r[:,0] = r[:,0]/np.sum(r[:,0])
 
     sk = skp.SinkhornKnopp(setr=r,setc=c,epsilon=eps)
     ot = sk.fit(af).T
@@ -248,20 +249,33 @@ def cinemaot_weighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.75,smo
         raise ValueError("We do not support other methods for DE now.")
     return cf, ot, te2, r, c
 
-def synergy(adata,obs_label,base,A,B,AB,dim=20,thres=0.15,smoothness=1e-4,eps=1e-3,mode='parametric',preweight_label=None):
+def synergy(adata,obs_label,base,A,B,AB,dim=20,thres=0.15,smoothness=1e-4,eps=1e-3,mode='parametric',preweight_label=None,path=None,fthres=None):
     adata1 = adata[adata.obs[obs_label].isin([base,A]),:]
     adata2 = adata[adata.obs[obs_label].isin([B,AB]),:]
     adata_link = adata[adata.obs[obs_label].isin([base,B]),:]
-    cf, ot1, de1 = cinemaot_unweighted(adata1,obs_label=obs_label, ref_label=base, expr_label=A,dim=dim,thres=thres,smoothness=smoothness,eps=eps,mode=mode,preweight_label=preweight_label)
-    cf, ot2, de2 = cinemaot_unweighted(adata2,obs_label=obs_label, ref_label=B, expr_label=AB,dim=dim,thres=thres,smoothness=smoothness,eps=eps,mode=mode,preweight_label=preweight_label)
-    cf, ot0, de0 = cinemaot_unweighted(adata_link,obs_label=obs_label, ref_label=base, expr_label=B,dim=dim,thres=thres,smoothness=smoothness,eps=eps,mode=mode,preweight_label=preweight_label)
+    cf, ot1, de1 = cinemaot_unweighted(adata1,obs_label=obs_label, ref_label=base, expr_label=A,dim=dim,thres=thres,smoothness=smoothness,eps=eps,mode='parametric',preweight_label=preweight_label)
+    cf, ot2, de2 = cinemaot_unweighted(adata2,obs_label=obs_label, ref_label=B, expr_label=AB,dim=dim,thres=thres,smoothness=smoothness,eps=eps,mode='parametric',preweight_label=preweight_label)
+    cf, ot0, de0 = cinemaot_unweighted(adata_link,obs_label=obs_label, ref_label=base, expr_label=B,dim=dim,thres=thres,smoothness=smoothness,eps=eps,mode='parametric',preweight_label=preweight_label)
     if mode == 'parametric':
         syn = (ot0/np.sum(ot0,axis=1)[:,None]) @ de2 - de1
+        return syn
     elif mode == 'non_parametric':
-        raise ValueError("We do not non-parametric synergy now.")
+        # For data with varying batch effect across conditions, we recommend output the difference set of significant genes
+        syn2 = -(ot0/np.sum(ot0,axis=1)[:,None]) @ de2
+        syn1 = -de1
+        subset = adata[adata.obs[obs_label].isin([base]),:]
+        syn2 = sc.AnnData(syn2)
+        syn2.obs[preweight_label] = subset.obs[preweight_label].values
+        syn2.var_names = subset.var_names
+        syn1 = sc.AnnData(syn1)
+        syn1.obs[preweight_label] = subset.obs[preweight_label].values
+        syn1.var_names = subset.var_names
+        utils.clustertest_synergy(syn1,syn2,preweight_label,1e-5,fthres,path=path)
+        return
+        #raise ValueError("We do not non-parametric synergy now.")
     else:
         raise ValueError("We do not support other methods for synergy now.")
-    return syn
+        return
 
 
 def weighted_quantile(values, num, sample_weight=None, 
