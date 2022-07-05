@@ -31,5 +31,7 @@ cf_unweighted, ot_unweighted, de_unweighted = co.cinemaot.cinemaot_unweighted(su
 cf_weighted, ot_weighted, de_weighted, r_weighted, c_weighted = co.cinemaot.cinemaot_weighted(subset,obs_label='batch', ref_label='CSE', expr_label='RVCSE')
 ```
 
+For a more detailed tutorial, see cinemaot_tutorial.ipynb.
+
 ### Reference
 
