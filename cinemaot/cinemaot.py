@@ -50,6 +50,17 @@ def cinemaot_unweighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.15,s
     te2: 'numpy.ndarray'
         Single-cell differential expression for each cell in control condition, of shape (n_refcells, n_genes).
     """
+    if dim is None:
+        sk = skp.SinkhornKnopp()
+        c = 0.5
+        data=adata.X
+        vm = (1e-3 + data + c * data * data)/(1+c)
+        P = sk.fit(vm)
+        wm = np.dot(np.dot(np.sqrt(sk._D1),vm),np.sqrt(sk._D2))
+        u,s,vt = np.linalg.svd(wm)
+        dim = sum(s > (np.sqrt(data.shape[0])+np.sqrt(data.shape[1])))
+
+
     transformer = FastICA(n_components=dim, random_state=0)
     X_transformed = transformer.fit_transform(adata.obsm['X_pca'][:,:dim])
     importr("XICOR")
@@ -156,6 +167,16 @@ def cinemaot_weighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.75,smo
     c: 'numpy.ndarray'
         Propensity score weights for reference condition.       
     """
+    if dim is None:
+        sk = skp.SinkhornKnopp()
+        c = 0.5
+        data=adata.X
+        vm = (1e-3 + data + c * data * data)/(1+c)
+        P = sk.fit(vm)
+        wm = np.dot(np.dot(np.sqrt(sk._D1),vm),np.sqrt(sk._D2))
+        u,s,vt = np.linalg.svd(wm)
+        dim = sum(s > (np.sqrt(data.shape[0])+np.sqrt(data.shape[1])))
+
     sk = skp.SinkhornKnopp()
     data = adata.obsm['X_pca'][adata.obs[obs_label].isin([expr_label,ref_label]),:dim]
     #r = 20
