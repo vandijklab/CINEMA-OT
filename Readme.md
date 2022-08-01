@@ -36,3 +36,6 @@ For a more detailed tutorial, see cinemaot_tutorial.ipynb. The data used in the 
 
 ### Reference
 
+Dong, Mingze., et al. "Causal identification of single-cell experimental perturbation effects with CINEMA-OT". bioRxiv (2022).
+https://www.biorxiv.org/content/10.1101/2022.07.31.502173v1
+
