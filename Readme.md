@@ -1,6 +1,7 @@
 ## Causal INdependent Effect Module Attribution + Optimal Transport (CINEMA-OT)
 
-![Fig1](https://user-images.githubusercontent.com/68533876/159141178-f356d07e-21a3-4f79-9204-ec3d747035b2.png)
+<img width="940" alt="image" src="https://user-images.githubusercontent.com/68533876/182231769-72c3395d-acff-4ad3-85ed-e137442ba6f0.png">
+
 
 Causal INdependent Effect Module Attribution + Optimal Transport (CINEMA-OT)  is an algorithm for causal identification of single-cell level perturbation effects. The method separates confounder signals and treatment-associated signals based on modular gene regulation assumption. The method is robust to state-specific treatment effects with distributional matching. Also the method can tackle differential abundance across treatment conditions via either iterative weighting or pre-given cell type labels. 
 
