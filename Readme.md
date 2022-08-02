@@ -1,41 +1,29 @@
-## Causal INdependent Effect Module Attribution + Optimal Transport (CINEMA-OT)
+# Causal INdependent Effect Module Attribution + Optimal Transport (CINEMA-OT)
+
+CINEMA-OT is a **Causal** framework for perturbation effect analysis to identify **individual treatment effects** and **synergy** at the **single cell** level.
+
+## Archictecture
 
 <img width="940" alt="image" src="https://user-images.githubusercontent.com/68533876/182231769-72c3395d-acff-4ad3-85ed-e137442ba6f0.png">
 
+Read our preprint on BioRXiv:
 
-Causal INdependent Effect Module Attribution + Optimal Transport (CINEMA-OT)  is an algorithm for causal identification of single-cell level perturbation effects. The method separates confounder signals and treatment-associated signals based on modular gene regulation assumption. The method is robust to state-specific treatment effects with distributional matching. Also the method can tackle differential abundance across treatment conditions via either iterative weighting or pre-given cell type labels. 
-
-### Dependency
-
-- Python 3.7+
-- Numpy
-- Pandas
-- Scanpy
-- sklearn
-- Scipy
-- Meld (for iterative weighting)
-- rpy2
-- XICOR (in R)
-- GSEAPY (for downstream gene set enrichment analysis)
-- Scib (for benchmark)
-- Harmonypy (for benchmark)
-
-### Usage
-
-```python
-import numpy as np
-import scanpy as sc
-import cinemaot as co
-adata = sc.read_h5ad('RealData/rvcse_220105.h5ad')
-subset = adata[adata.obs['batch'].isin(['CSE','RVCSE']),:]
-cf_unweighted, ot_unweighted, de_unweighted = co.cinemaot.cinemaot_unweighted(subset,obs_label='batch', ref_label='CSE', expr_label='RVCSE')
-cf_weighted, ot_weighted, de_weighted, r_weighted, c_weighted = co.cinemaot.cinemaot_weighted(subset,obs_label='batch', ref_label='CSE', expr_label='RVCSE')
-```
-
-For a more detailed tutorial, see cinemaot_tutorial.ipynb. The data used in the tutorial can be accessed at: https://drive.google.com/file/d/1A3rNdgfiXFWhCUOoUfJ-AiY7AAOU0Ie3/view?usp=sharing
-
-### Reference
-
-Dong, Mingze, et al. "Causal identification of single-cell experimental perturbation effects with CINEMA-OT". bioRxiv (2022).
+- Dong, Mingze, et al. "Causal identification of single-cell experimental perturbation effects with CINEMA-OT". bioRxiv (2022).
 https://www.biorxiv.org/content/10.1101/2022.07.31.502173v1
 
+## Installation
+CINEMA-OT requires `python` version 3.7+.  Install directly from github with:
+
+    pip install git+https://github.com/vandijklab/CINEMA-OT
+
+CINEMA-OT also interfaces with `R` through `rpy2` and requires that the [`XICOR`](https://cran.r-project.org/web/packages/XICOR/index.html) package be installed in `R`.
+
+## Usage
+
+For detailed usage, follow our step-by-step tutorial here:
+
+- [Getting Started with CINEMA-OT](https://github.com/vandijklab/CINEMA-OT/blob/main/cinemaot_tutorial.ipynb)
+
+Download the data used for the tutorial here:
+
+- [Ex vivo stimulation of human peripheral blood mononuclear cells (PBMC) with interferon](https://drive.google.com/file/d/1A3rNdgfiXFWhCUOoUfJ-AiY7AAOU0Ie3/view?usp=sharing)
