@@ -2,7 +2,7 @@
 
 CINEMA-OT is a **Causal** framework for perturbation effect analysis to identify **individual treatment effects** and **synergy** at the **single cell** level.
 
-## Archictecture
+## Architecture
 
 <img width="940" alt="image" src="https://user-images.githubusercontent.com/68533876/182231769-72c3395d-acff-4ad3-85ed-e137442ba6f0.png">
 
