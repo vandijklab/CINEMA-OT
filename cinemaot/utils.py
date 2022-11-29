@@ -7,32 +7,15 @@ import scanpy as sc
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import OneHotEncoder
 from scipy.stats import kstest
+import plotly.graph_objects as go
+import plotly.express as px
 
-import rpy2.robjects as ro
-import rpy2.robjects.numpy2ri
-import rpy2.robjects.pandas2ri
-from rpy2.robjects.packages import importr
-rpy2.robjects.numpy2ri.activate()
-rpy2.robjects.pandas2ri.activate()
-
-
-def wgcna_module_scores(de_adata):
-    """
-    Caculate gene modules and soft connectivity scores using WGCNA
-    Remark: There are some scaling for mean gene expression and the variance. Here we select all highly variable genes remained after pre-processing. 
-    """
-    wgcna = importr('WGCNA')
-    #variance = np.var(de_matrix, axis=0)
-    #genes_to_select = np.argsort(-variance) < n_variable_genes
-    #de_trimmed = de_matrix[:,genes_to_select]
-    modules = wgcna.blockwiseModules(de_adata.X, numericLabels=True)
-    # calculate top hub genes per module
-    soft_connectivities = wgcna.softConnectivity(de_adata.X)
-    return pd.DataFrame({
-        'gene_name': de_adata.var_names,
-        'module': modules.rx2('colors').astype(int),
-        'soft_connectivity': soft_connectivities
-    })
+# import rpy2.robjects as ro
+# import rpy2.robjects.numpy2ri
+# import rpy2.robjects.pandas2ri
+# from rpy2.robjects.packages import importr
+# rpy2.robjects.numpy2ri.activate()
+# rpy2.robjects.pandas2ri.activate()
 
 
 def dominantcluster(adata,ctobs,clobs):
@@ -104,13 +87,13 @@ def clustertest_synergy(adata1,adata2,clobs,thres,fthres,path,genesetpath,organi
                      no_plot=True,organism=organism,
                      outdir=path, format='png')
         if not enr_up1.results.empty:
-            enr_up1.results.iloc[enr_up1.results['Adjusted P-value'].values<1e-3,:].to_csv(path+'/Up1'+clustername+'.csv')
+            enr_up1.results.iloc[enr_up1.results['Adjusted P-value'].values<1e-2,:].to_csv(path+'/Up1'+clustername+'.csv')
         if not enr_up2.results.empty:
-            enr_up2.results.iloc[enr_up2.results['Adjusted P-value'].values<1e-3,:].to_csv(path+'/Up2'+clustername+'.csv')
+            enr_up2.results.iloc[enr_up2.results['Adjusted P-value'].values<1e-2,:].to_csv(path+'/Up2'+clustername+'.csv')
         if not enr_down1.results.empty:
-            enr_down1.results.iloc[enr_down1.results['Adjusted P-value'].values<1e-3,:].to_csv(path+'/Down1'+clustername+'.csv')
+            enr_down1.results.iloc[enr_down1.results['Adjusted P-value'].values<1e-2,:].to_csv(path+'/Down1'+clustername+'.csv')
         if not enr_down2.results.empty:
-            enr_down2.results.iloc[enr_down2.results['Adjusted P-value'].values<1e-3,:].to_csv(path+'/Down2'+clustername+'.csv')
+            enr_down2.results.iloc[enr_down2.results['Adjusted P-value'].values<1e-2,:].to_csv(path+'/Down2'+clustername+'.csv')
         upgenes1df = pd.DataFrame(index=up1syn)
         upgenes2df = pd.DataFrame(index=up2syn)
         downgenes1df = pd.DataFrame(index=down1syn)
@@ -125,7 +108,7 @@ def clustertest_synergy(adata1,adata2,clobs,thres,fthres,path,genesetpath,organi
     return
 
 
-def clustertest(adata,clobs,thres,fthres,label,path,genesetpath,organism):
+def clustertest(adata,clobs,thres,fthres,label,path,genesetpath,organism,onlyup=False):
     # Changed from ttest to Wilcoxon test
     clusternum = int(np.max((np.asfarray(adata.obs[clobs].values))))
     genenum = np.zeros([clusternum+1])
@@ -168,6 +151,9 @@ def clustertest(adata,clobs,thres,fthres,label,path,genesetpath,organism):
         upgenesdf.to_csv(path+'/Upnames'+clustername+'.csv')
         downgenesdf.to_csv(path+'/Downnames'+clustername+'.csv')
         allgenesdf.to_csv(path+'/names'+clustername+'.csv')
+        if onlyup:
+            enr = enr_up
+
         if not enr.results.empty:
             if i == 0:
                 df = enr.results.transpose().iloc[4:5,:]
@@ -185,7 +171,7 @@ def clustertest(adata,clobs,thres,fthres,label,path,genesetpath,organism):
 
 
 def concordance_map(confounder,response,obs_label, cl_label, condition):
-    #deprecatedc
+    #deprecated
     cf = confounder[confounder.obs[obs_label] == condition,:]
     cf.obs['res_cl'] = response.obs[cl_label].values
     aswmatrix = np.zeros([len(list(set(cf.obs['res_cl'].values.tolist()))),len(list(set(cf.obs['res_cl'].values.tolist())))])
@@ -219,12 +205,82 @@ def concordance_map(confounder,response,obs_label, cl_label, condition):
     return aswmatrix, indnummatrix
 
 
-def coarse_matching(de,de_label,ref,ref_label,ot,scaling=1e6):
+def coarse_matching(de,de_label,ref,ref_label,ot,scaling=1e6,mode='mean'):
     coarse_ot = pd.DataFrame(index=sorted(set(de.obs[de_label].values.tolist())),columns=sorted(set(ref.obs[ref_label].values.tolist())),dtype=float)
     for i in set(de.obs[de_label].values.tolist()):
         for j in set(ref.obs[ref_label].values.tolist()):
             tmp_ot = ot[de.obs[de_label]==i,:]
-            coarse_ot[j][i] = np.mean(tmp_ot[:,ref.obs[ref_label]==j]) * scaling
+            if mode=='mean':
+                coarse_ot[j][i] = np.mean(tmp_ot[:,ref.obs[ref_label]==j]) * scaling
+            else:
+                coarse_ot[j][i] = np.sum(tmp_ot[:,ref.obs[ref_label]==j]) * scaling
     return coarse_ot
+
+def sankey_plot(coarse_ot,thres1=0.1,thres2=0.1,title_text="Sankey Diagram",width=600,height=400):
+    new_coarse_ot = pd.DataFrame(np.zeros([coarse_ot.shape[0]*coarse_ot.shape[1],3]))
+    k = 0
+    for i in range(coarse_ot.shape[0]):
+        for j in range(coarse_ot.shape[1]):
+            thres_ = max(thres1 * np.sum(coarse_ot.values[i,:]), thres2 * np.sum(coarse_ot.values[:,j]))
+            if coarse_ot.values[i,j] > thres_:
+                new_coarse_ot.iloc[k,1] = 'Response: ' + coarse_ot.index[i]
+                new_coarse_ot.iloc[k,0] = coarse_ot.columns[j]
+                new_coarse_ot.iloc[k,2] = coarse_ot.values[i,j]
+        
+                k = k + 1
+    new_coarse_ot = new_coarse_ot.loc[new_coarse_ot.iloc[:,2]>0,:]
+    a = set(new_coarse_ot[0].values.tolist())
+    b = set(new_coarse_ot[1].values.tolist())
+    a0 = []
+    for i in range(len(list(a))):
+        a0.append(list(a)[i][:-1])
+    a0 = list(set(a0))
+    
+    source = np.arange(new_coarse_ot.shape[0] + new_coarse_ot.shape[0])
+    target = np.arange(new_coarse_ot.shape[0] + new_coarse_ot.shape[0])
+    
+    for i in range(new_coarse_ot.shape[0]):
+        source[i+new_coarse_ot.shape[0]] = np.argwhere(np.array(list(a))==new_coarse_ot[0].values[i])[0][0]
+        target[i+new_coarse_ot.shape[0]] = np.argwhere(np.array(list(b))==new_coarse_ot[1].values[i])[0][0]
+    
+    target = target + len(list(a))
+    
+    for i in range(new_coarse_ot.shape[0]):
+        source[i] = np.argwhere(np.array(a0)==new_coarse_ot[0].values[i][:-1])[0][0]
+        target[i] = np.argwhere(np.array(list(a))==new_coarse_ot[0].values[i])[0][0]
+    
+    target = target + len(a0)
+    source[new_coarse_ot.shape[0]:] = source[new_coarse_ot.shape[0]:] + len(a0)
+    values = np.zeros(2*new_coarse_ot.shape[0])
+    for i in range(new_coarse_ot.shape[0]):
+        values[i] = np.sum(new_coarse_ot.values[:,2][new_coarse_ot.values[:,0]==new_coarse_ot.values[i,0]]) / np.sum(new_coarse_ot.values[:,0]==new_coarse_ot.values[i,0])
+    
+    values[new_coarse_ot.shape[0]:] = new_coarse_ot.values[:,2]
+    colorlist = px.colors.qualitative.Plotly
+    colors = np.array(a0 + list(a) + list(b))
+    colors[0:len(a0)] = colorlist[0:len(a0)]
+    for i in range(len(a0),len(a0)+len(list(a))):
+        colors[i] = colors[0:len(a0)][np.array(a0)==(list(a)[i-len(a0)][:-1])][0]
+    for i in range(len(a0)+len(list(a)),len(a0)+len(list(a))+len(list(b))):
+        colors[i] = colors[0:len(a0)][np.array(a0)==(list(b)[i-len(a0)-len(list(a))][10:-1])][0]
+
+    fig = go.Figure(data=[go.Sankey(
+    node = dict(
+      pad = 15,
+      thickness = 20,
+      #line = dict(color = "black", width = 0.5),
+      label = a0 + list(a) + list(b),
+      color = colors
+    ),
+    link = dict(
+      source = source, # indices correspond to labels, eg A1, A2, A1, B1, ...
+      target = target,
+      value = values
+  ))])
+
+    fig.update_layout(title_text="Sankey Diagram", font_family="Arial", font_size=10,width=width, height=height)
+    fig.show()
+    return
+
 
 

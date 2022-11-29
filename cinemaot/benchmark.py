@@ -4,13 +4,16 @@ import pandas as pd
 import scanpy as sc
 from sklearn.neighbors import NearestNeighbors
 from scipy.sparse import csr_matrix
-import rpy2.robjects as ro
-import rpy2.robjects.numpy2ri
-import rpy2.robjects.pandas2ri
-from rpy2.robjects.packages import importr
-from scipy.stats import spearmanr
-rpy2.robjects.numpy2ri.activate()
-rpy2.robjects.pandas2ri.activate()
+
+# In this newer version we use the Python implementation of xicor
+# import rpy2.robjects as ro
+# import rpy2.robjects.numpy2ri
+# import rpy2.robjects.pandas2ri
+# from rpy2.robjects.packages import importr
+# rpy2.robjects.numpy2ri.activate()
+# rpy2.robjects.pandas2ri.activate()
+
+from xicor.xicor import Xi
 
 from scipy.stats.stats import pearsonr
 from sklearn.decomposition import FastICA
@@ -89,7 +92,7 @@ def evaluate_cinema(matrix,ite,gt,gite):
         scorr_[i],pval = spearmanr(ite[i,:],gite[i,:])        
     return np.median(aucdata), np.median(corr_), np.median(scorr_)
 
-def evaluate_batch(sig, adata,obs_label, label, continuity,asw=True,silhouette=True,graph_conn=True,pcr=True):
+def evaluate_batch(sig, adata,obs_label, label, continuity,asw=True,silhouette=True,graph_conn=True,pcr=True,nmi=True,ari=True,diff_coefs=False):
     #Label is a list!!!
     newsig = sc.AnnData(X=sig, obs = adata.obs)
     sc.pp.pca(newsig,n_comps=min(15,newsig.X.shape[1]-1))
@@ -104,44 +107,45 @@ def evaluate_batch(sig, adata,obs_label, label, continuity,asw=True,silhouette=T
     newsig_metrics = scib.metrics.metrics(adata,newsig,obs_label,label[0],
         isolated_labels_asw_= asw,
         graph_conn_= graph_conn,
-        silhouette_ = silhouette,                            
+        silhouette_ = silhouette,
+        nmi_=nmi,
+        ari_=ari,                            
         pcr_=pcr)
-    importr("XICOR")
-    xicor = ro.r["xicor"]
-    for i in range(len(label)):
-        steps = adata.obs[label[i]].values
-        #also we test max correlation to see strong functional dependence between steps and signals, for each state_group population 
-        if continuity[i]:
-            xi = np.zeros(eigen.shape[1])
-            pval = np.zeros(eigen.shape[1])
-            j = 0
-            for source_row in eigen.T:
-                rresults = xicor(ro.FloatVector(source_row), ro.FloatVector(steps), pvalue = True)
-                xi[j] = np.array(rresults.rx2("xi"))[0]
-                pval[j] = np.array(rresults.rx2("pval"))[0]
-                j = j+1
-            maxcoef = np.max(xi)
-            #newsig_metrics.rename(index={'trajectory':'trajectory_coef'},inplace=True)
-            #newsig_metrics.iloc[13,0] = np.max(xi)
-            newsig_metrics.loc[label[i]] = maxcoef
-        else:
-            encoder = OneHotEncoder(sparse=False)
-            onehot = encoder.fit_transform(np.array(adata.obs[label[i]].values.tolist()).reshape(-1, 1))
-            yi = np.zeros([onehot.shape[1],eigen.shape[1]])
-            k = 0
-            #ind = onehot.T[0] * 0
-            m = onehot.T.shape[0]
-            for indicator in onehot.T[0:m-1]:
+    if diff_coefs:
+        for i in range(len(label)):
+            steps = adata.obs[label[i]].values
+            #also we test max correlation to see strong functional dependence between steps and signals, for each state_group population 
+            if continuity[i]:
+                xi = np.zeros(eigen.shape[1])
+                #pval = np.zeros(eigen.shape[1])
                 j = 0
-                #ind = ind + indicator
                 for source_row in eigen.T:
-                    rresults = xicor(ro.FloatVector(source_row), ro.FloatVector(indicator), pvalue = True)
-                    yi[k,j] = np.array(rresults.rx2("xi"))[0]
+                    #rresults = xicor(ro.FloatVector(source_row), ro.FloatVector(steps), pvalue = True)
+                    xi_obj = Xi(source_row,steps.astype(np.float))
+                    xi[j] = xi_obj.correlation
                     j = j+1
-                k = k+1
+                maxcoef = np.max(xi)
+                #newsig_metrics.rename(index={'trajectory':'trajectory_coef'},inplace=True)
+                #newsig_metrics.iloc[13,0] = np.max(xi)
+                newsig_metrics.loc[label[i]] = maxcoef
+            else:
+                encoder = OneHotEncoder(sparse=False)
+                onehot = encoder.fit_transform(np.array(adata.obs[label[i]].values.tolist()).reshape(-1, 1))
+                yi = np.zeros([onehot.shape[1],eigen.shape[1]])
+                k = 0
+                #ind = onehot.T[0] * 0
+                m = onehot.T.shape[0]
+                for indicator in onehot.T[0:m-1]:
+                    j = 0
+                    #ind = ind + indicator
+                    for source_row in eigen.T:
+                        xi_obj = Xi(source_row,indicator*1)
+                        yi[k,j] = xi_obj.correlation
+                        j = j+1
+                    k = k+1
         
             #newsig_metrics.rename(index={'hvg_overlap':'state_coef'},inplace=True)
             #newsig_metrics.iloc[12,0] = np.mean(np.max(yi,axis=1))
-            newsig_metrics.loc[label[i]] = np.mean(np.max(yi,axis=1))
-    
+                newsig_metrics.loc[label[i]] = np.mean(np.max(yi,axis=1))
+        
     return newsig_metrics
