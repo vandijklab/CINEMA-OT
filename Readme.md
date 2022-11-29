@@ -26,8 +26,6 @@ CINEMA-OT requires `python` version 3.7+.  Install directly from github with:
 
     pip install git+https://github.com/vandijklab/CINEMA-OT
 
-CINEMA-OT also interfaces with `R` through `rpy2` and requires that the [`XICOR`](https://cran.r-project.org/web/packages/XICOR/index.html) package be installed in `R`.
-
 ## Usage
 
 For detailed usage, follow our step-by-step tutorial here:
