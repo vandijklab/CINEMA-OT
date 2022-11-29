@@ -21,7 +21,7 @@ from scipy.sparse import issparse
 # Further exclusion of false positives may be removed by permutation (as in PseudotimeDE)
 
 from xicor.xicor import Xi
-import ot
+#import ot
 
 import statsmodels.api as sm
 from sklearn.linear_model import LinearRegression
@@ -31,7 +31,7 @@ import sklearn.metrics
 import meld
 
 
-def cinemaot_unweighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.15,smoothness=1e-4,eps=1e-3,mode='parametric',ot_setting='original',marker=None,preweight_label=None):
+def cinemaot_unweighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.15,smoothness=1e-4,eps=1e-3,mode='parametric',marker=None,preweight_label=None):
     """
     Parameters
     ----------
@@ -113,12 +113,8 @@ def cinemaot_unweighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.15,s
             r[(adata1.obs[preweight_label]==ct).values,0] = np.sum((adata2.obs[preweight_label]==ct).values) / np.sum((adata1.obs[preweight_label]==ct).values)
         r[:,0] = r[:,0]/np.sum(r[:,0])
 
-    if ot_setting == 'original':
-        sk = skp.SinkhornKnopp(setr=r,setc=c,epsilon=eps)
-        ot_matrix = sk.fit(af).T
-
-    elif ot_setting == 'bregman':
-        ot_matrix = ot.bregman.sinkhorn_epsilon_scaling(r[:,0],c[:,0],dis,e,epsilon0=1,stopThr=eps)
+    sk = skp.SinkhornKnopp(setr=r,setc=c,epsilon=eps)
+    ot_matrix = sk.fit(af).T
 
     embedding = X_transformed[adata.obs[obs_label]==ref_label,:] - np.matmul(ot_matrix/np.sum(ot_matrix,axis=1)[:,None],X_transformed[adata.obs[obs_label]==expr_label,:])
 
