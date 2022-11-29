@@ -16,7 +16,7 @@ Read our preprint on BioRXiv:
 ### Hardware requirements
 `CINEMA-OT` requires only a standard computer with enough RAM to perform in-memory computations.
 ### OS requirements
-The `CINEMA-OT` package is supported for macOS and Linux. The package has been tested on the following systems:
+The `CINEMA-OT` package is supported for all OS in principle. The package has been tested on the following systems:
 * macOS: Monterey (12.4)
 ### Dependencies
 See `setup.cfg` for details.
