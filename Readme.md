@@ -9,7 +9,7 @@ CINEMA-OT is a **Causal** framework for perturbation effect analysis to identify
 Read our preprint on BioRXiv:
 
 - Dong, Mingze, et al. "Causal identification of single-cell experimental perturbation effects with CINEMA-OT". bioRxiv (2022).
-https://www.biorxiv.org/content/10.1101/2022.07.31.502173v1
+[https://www.biorxiv.org/content/10.1101/2022.07.31.502173v2](https://www.biorxiv.org/content/10.1101/2022.07.31.502173v2)
 
 ## Installation
 CINEMA-OT requires `python` version 3.7+.  Install directly from github with:
