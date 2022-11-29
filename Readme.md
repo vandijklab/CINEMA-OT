@@ -4,7 +4,8 @@ CINEMA-OT is a **Causal** framework for perturbation effect analysis to identify
 
 ## Architecture
 
-<img width="940" alt="image" src="https://user-images.githubusercontent.com/68533876/182231769-72c3395d-acff-4ad3-85ed-e137442ba6f0.png">
+<img width="1411" alt="CINEMAOT_gitfig" src="https://user-images.githubusercontent.com/68533876/204625392-f4de2fd1-8cd0-4aac-81f8-6155b52a7630.png">
+
 
 Read our preprint on BioRXiv:
 
