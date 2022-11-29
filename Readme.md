@@ -12,6 +12,15 @@ Read our preprint on BioRXiv:
 - Dong, Mingze, et al. "Causal identification of single-cell experimental perturbation effects with CINEMA-OT". bioRxiv (2022).
 [https://www.biorxiv.org/content/10.1101/2022.07.31.502173v2](https://www.biorxiv.org/content/10.1101/2022.07.31.502173v2)
 
+## System requirements
+### Hardware requirements
+`CINEMA-OT` requires only a standard computer with enough RAM to perform in-memory computations.
+### OS requirements
+The `CINEMA-OT` package is supported for macOS and Linux. The package has been tested on the following systems:
+* macOS: Monterey (12.4)
+### Dependencies
+See `setup.cfg` for details.
+
 ## Installation
 CINEMA-OT requires `python` version 3.7+.  Install directly from github with:
 
