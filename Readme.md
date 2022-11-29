@@ -26,6 +26,8 @@ CINEMA-OT requires `python` version 3.7+.  Install directly from github with:
 
     pip install git+https://github.com/vandijklab/CINEMA-OT
 
+The installation should take no more than a few minutes on a normal desktop computer.
+
 ## Usage
 
 For detailed usage, follow our step-by-step tutorial here:
