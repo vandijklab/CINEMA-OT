@@ -1,13 +1,13 @@
 # Causal INdependent Effect Module Attribution + Optimal Transport (CINEMA-OT)
 
-CINEMA-OT is a **Causal** framework for perturbation effect analysis to identify **individual treatment effects** and **synergy** at the **single cell** level.
+CINEMA-OT is a **causal** framework for perturbation effect analysis to identify **individual treatment effects** and **synergy** at the **single cell** level.
 
 ## Architecture
 
 <img width="1411" alt="CINEMAOT_gitfig" src="https://user-images.githubusercontent.com/68533876/204625392-f4de2fd1-8cd0-4aac-81f8-6155b52a7630.png">
 
 
-Read our preprint on BioRXiv:
+Read our preprint on bioRxiv:
 
 - Dong, Mingze, et al. "Causal identification of single-cell experimental perturbation effects with CINEMA-OT". bioRxiv (2022).
 [https://www.biorxiv.org/content/10.1101/2022.07.31.502173v2](https://www.biorxiv.org/content/10.1101/2022.07.31.502173v2)
