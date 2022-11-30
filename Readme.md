@@ -29,6 +29,10 @@ CINEMA-OT requires `python` version 3.7+.  Install directly from github with:
 
 The installation should take no more than a few minutes on a normal desktop computer.
 
+Note: We find the newest version of the package `black` and `flask` may have dependency conflict. This potential issue can be fixed by installing an earlier version of `black` prior to installing CINEMA-OT, for example:
+
+    pip install black==20.8b0
+
 ## Usage
 
 For detailed usage, follow our step-by-step tutorial here:
