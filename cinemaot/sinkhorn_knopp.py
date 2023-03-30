@@ -151,7 +151,9 @@ class SinkhornKnopp:
 
             self._D1 = np.diag(np.squeeze(r))
             self._D2 = np.diag(np.squeeze(c))
-            P_eps = self._D1.dot(P).dot(self._D2)
+
+            P_eps = np.diag(self._D1)[:,None] * P * np.diag(self._D2)[None,:]
+
 
             self._iterations += 1
 
@@ -164,6 +166,6 @@ class SinkhornKnopp:
 
         self._D1 = np.diag(np.squeeze(r))
         self._D2 = np.diag(np.squeeze(c))
-        P_eps = self._D1.dot(P).dot(self._D2)
+        P_eps = np.diag(self._D1)[:,None] * P * np.diag(self._D2)[None,:]
 
         return P_eps
