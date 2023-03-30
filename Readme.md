@@ -23,7 +23,7 @@ The `CINEMA-OT` package is supported for all OS in principle. The package has be
 See `setup.cfg` for details.
 
 ## Installation
-CINEMA-OT requires `python` version 3.7+.  Install directly from github with:
+CINEMA-OT requires `python` version 3.7+.  Install directly from pip with:
 
     pip install cinemaot
 
