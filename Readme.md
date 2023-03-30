@@ -25,7 +25,7 @@ See `setup.cfg` for details.
 ## Installation
 CINEMA-OT requires `python` version 3.7+.  Install directly from github with:
 
-    pip install git+https://github.com/vandijklab/CINEMA-OT
+    pip install cinemaot
 
 The installation should take no more than a few minutes on a normal desktop computer.
 
