@@ -38,4 +38,4 @@ For detailed usage, follow our step-by-step tutorial here:
 
 Download the data used for the tutorial here:
 
-- [Ex vivo stimulation of human peripheral blood mononuclear cells (PBMC) with interferon](https://drive.google.com/file/d/1A3rNdgfiXFWhCUOoUfJ-AiY7AAOU0Ie3/view?usp=sharing)
+- [Human MERFISH MTG data](https://drive.google.com/file/d/1i6spfxfEqqczgSHDX0gNImrGkH7Ruy7z/view?usp=sharing)
