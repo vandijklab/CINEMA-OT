@@ -73,7 +73,7 @@ def cinemaot_unweighted(adata,obs_label,ref_label,expr_label,dim=20,thres=0.15,s
         dim = np.min(sum(s > (np.sqrt(data.shape[0])+np.sqrt(data.shape[1]))),adata.obsm['X_pca'].shape[1])
 
 
-    transformer = FastICA(n_components=dim, random_state=0)
+    transformer = FastICA(n_components=dim, random_state=0,whiten="arbitrary-variance")
     X_transformed = transformer.fit_transform(adata.obsm['X_pca'][:,:dim])
     #importr("XICOR")
     #xicor = ro.r["xicor"]
@@ -240,7 +240,7 @@ def cinemaot_weighted(adata,obs_label,ref_label,expr_label,use_rep=None,dim=20,t
                 idx_tmp = idx_tmp.append(adata_[(adata_.obs['leiden']==i) & (adata_.obs[obs_label]==ref_label)].obs.index)
                 idx = idx.append(idx_tmp)
 
-    transformer = FastICA(n_components=dim, random_state=0)
+    transformer = FastICA(n_components=dim, random_state=0, whiten="arbitrary-variance")
     X_transformed = transformer.fit_transform(adata_[idx].obsm['X_pca'][:,:dim])
     #importr("XICOR")
     #xicor = ro.r["xicor"]
