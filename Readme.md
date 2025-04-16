@@ -1,6 +1,8 @@
 # Causal INdependent Effect Module Attribution + Optimal Transport (CINEMA-OT)
 
-CINEMA-OT is a **causal** framework for perturbation effect analysis to identify **individual treatment effects** and **synergy** at the **single cell** level.
+CINEMA-OT is a **causal** framework for perturbation effect analysis to identify **individual treatment effects** and **synergy** at the **single cell** level. 
+
+**Note**: Newer versions of CINEMA-OT are maintained at [Pertpy](https://github.com/scverse/pertpy).
 
 ## Architecture
 
